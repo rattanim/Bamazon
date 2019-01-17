@@ -9,127 +9,87 @@ var connection = mysql.createConnection({
     password: "root",
     database: "bamazon"
 });
-
-connection.connect(err => {
+connection.connect(function (err) {
     if (err) throw err;
-    console.log("connected as id " + connection.threadId + "\n");
-});
-
-var table = new Table({
-    head: ["ITEM ID", "PRODUCT NAME", "TYPE", "COST", "IN STOCK"],
-    colWidths: [10, 30, 20, 10, 20]
-});
-
-function buyProduct(amount, product_id, price) {
-    inquirer
-        .prompt([
-            {
-                type: "input",
-                message: "How Many?",
-                name: "amount",
-                validate: value => {
-                    let valid = !isNaN(parseFloat(value));
-                    return valid || "Enter Item ID";
-                }
-            }
-        ])
-        .then(res => {
-            if (amount > res.amount) {
-                console.log("SUCCESS");
-                totalPrice(res.amount, price);
-                updateStock(res.amount, product_id, amount);
-            } else {
-                console.log("Sorry, Out of stock!");
-                buyProduct(amount, product_id, price);
-            }
-        });
-}
-function selectItems(product) {
-    connection.query(
-        "SELECT * FROM products WHERE item_id = ?",
-        [product],
-        (err, res) => {
-            let quantity;
-            for (let i in res) {
-                quantity = res[i].stock_quantity;
-                product_id = res[i].item_id;
-                price = res[i].price;
-            }
-            buyProduct(quantity, product_id, price);
-        }
-    );
-}
-
-let total = 0;
-
-function totalPrice(amount, price) {
-    total += amount * price;
-}
-function updateStock(amount, item, product_stock) {
-    connection.query("UPDATE products SET ? WHERE ?", [
-        {
-            stock_quantity: product_stock - amount
-        },
-        {
-            item_id: item
-        }
-    ]),
-        anythingElse();
-}
-
-function purchase() {
-    inquirer
-        .prompt([
-            {
-                type: "input",
-                message: "Item ID?",
-                name: "choice",
-                validate: value => {
-                    let valid = !isNaN(parseFloat(value));
-                    return valid || "Enter Item ID";
-                }
-            }
-        ])
-        .then(res => {
-            selectItems(res.choice);
-        });
-}
-function anythingElse() {
-    inquirer
-        .prompt([
-            {
-                type: "confirm",
-                message: "Is that it?",
-                name: "choice"
-            }
-        ])
-        .then(res => {
-            if (res.choice) {
-                displayProducts();
-            } else {
-                console.log("Thank You!");
-                console.log(`Total: $${total}`);
-                connection.end();
-            }
-        });
-}
-function displayProducts() {
-    table.length = 0;
-    connection.query("SELECT * FROM products", (err, res) => {
-        if (err) throw err;
-
-        for (let i in res) {
-            let item_id = res[i].item_id;
-            let product_name = res[i].product_name;
-            let department_name = res[i].department_name;
-            let price = res[i].price;
-            let stock = res[i].stock_quantity;
-
-            table.push([item_id, product_name, department_name, price, stock]);
-        }
-        console.log(table.toString());
-        purchase();
+    displayProducts();
+  });
+  function displayProducts() {
+    connection.query("SELECT * FROM products", function (err, res) {
+      console.log("-----------------------------------");
+      console.log("Welcome!\nThis is a list of all our latest products for sale:");
+      console.log("-----------------------------------");
+      for (var i = 0; i < res.length; i++) {
+        console.log(res[i].id + " | " + res[i].item + " | " + res[i].department + " | " + res[i].price + " | " + res[i].quantity);
+      }
+      console.log("-----------------------------------");
     });
+    customerQuestions1(res); 
 }
+function customerQuestions1(inventory) {
+    inquirer.prompt([
+      {
+        name: "productID",
+        type: "input",
+        message: "What is the ID of the product you want to buy?",
 
-displayProducts();
+        validate: function(val) {
+          return !isNaN(val) ;      
+      }
+    }
+]).then(function (val) {
+    var chosenItem = parseInt(val.choice);
+    var product = checkInventory(chosenItem, inventory);
+
+    if (product) {
+
+        customerQuestions2(product);
+    }
+    else {
+        console.log("\nThat item is not in the inventory yet.");
+        displayProducts();
+      }
+    });
+  }
+  function customerQuestions2(product) {
+    inquirer.prompt([
+      {
+        name: "units",
+        type: "input",
+        message: "how many items of this product would you like to purchase?",
+        validate: function(val) {
+          return val > 0;
+        }
+      }
+    ])
+      .then(function (val) {
+        var chosenQuanity = parseInt(val.units);
+
+        if (chosenQuanity > product.quantity) {
+            console.log("\nUh Oh! Not enough quantity!");
+            displayProducts();
+          }
+          else {
+            makePurchase(product, quantity);
+        }
+      });
+  } 
+  function makePurchase(product, quantity) {
+    connection.query(
+      "UPDATE products SET quantity = quantity - ? WHERE id = ?" [quantity,product],
+      function(err, res) {
+        // Let the user know the purchase was successful, re-run loadProducts
+        console.log("Thank you for your money!  Want to buy something else?");
+        displayProducts();
+      }
+    )
+  }
+  function checkInventory(chosenItem, inventory) {
+    for (var i = 0; i < inventory.length; i++) {
+      if (inventory[i].item_id === chosenItem) {
+        return inventory[i];
+    } else {
+    console.log("Amount you want is more than what we have - try again");
+    return null;
+}
+}
+} 
