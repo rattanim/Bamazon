@@ -9,6 +9,7 @@ var connection = mysql.createConnection({
     password: "root",
     database: "bamazon"
 });
+res = ("");
 connection.connect(function (err) {
     if (err) throw err;
     displayProducts();
