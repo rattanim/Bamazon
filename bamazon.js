@@ -9,7 +9,7 @@ var connection = mysql.createConnection({
     password: "root",
     database: "bamazon"
 });
-res = ("");
+
 connection.connect(function (err) {
     if (err) throw err;
     displayProducts();
@@ -23,8 +23,10 @@ connection.connect(function (err) {
         console.log(res[i].id + " | " + res[i].item + " | " + res[i].department + " | " + res[i].price + " | " + res[i].quantity);
       }
       console.log("-----------------------------------");
+      //move the below call to customerQuestions1(res) up inside the connection function but not inside the for loop
+      customerQuestions1(res); 
     });
-    customerQuestions1(res); 
+    
 }
 function customerQuestions1(inventory) {
     inquirer.prompt([
@@ -38,7 +40,7 @@ function customerQuestions1(inventory) {
       }
     }
 ]).then(function (val) {
-    var chosenItem = parseInt(val.choice);
+    var chosenItem = parseInt(val.productID); //here you need to refer to the "name" property
     var product = checkInventory(chosenItem, inventory);
 
     if (product) {
@@ -70,13 +72,13 @@ function customerQuestions1(inventory) {
             displayProducts();
           }
           else {
-            makePurchase(product, quantity);
+            makePurchase(product, chosenQuanity);//here you referred to the wrong variable. ou had quantity but it should be chosenQuantity
         }
       });
   } 
-  function makePurchase(product, quantity) {
+  function makePurchase(product, chosenQuanity) { //you have quantity again...it should be chosenQuantity====same below on line 81
     connection.query(
-      "UPDATE products SET quantity = quantity - ? WHERE id = ?" [quantity,product],
+      "UPDATE products SET quantity = quantity - ? WHERE id = ?" [chosenQuanity,product.item_id],
       function(err, res) {
         // Let the user know the purchase was successful, re-run loadProducts
         console.log("Thank you for your money!  Want to buy something else?");
